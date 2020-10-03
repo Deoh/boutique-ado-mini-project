@@ -12,6 +12,21 @@ def all_products(request):
     products = Product.objects.all()  # gets all products from the database
     query = None
     categories = None
+    sort = None
+    direction = None
+
+    if 'sort' in request.GET:
+            sortkey = request.GET['sort']
+            sort = sortkey
+            if sortkey == 'name':
+                sortkey = 'lower_name'
+                products = products.annotate(lower_name=Lower('name'))
+
+            if 'direction' in request.GET:
+                direction = request.GET['direction']
+                if direction == 'desc':
+                    sortkey = f'-{sortkey}'
+            products = products.order_by(sortkey)
 
     if request.GET:
         if 'category' in request.GET:
@@ -29,11 +44,14 @@ def all_products(request):
             queries = Q(name__icontains=query) | Q(description__icontains=query)
             products = products.filter(queries)
 
+    current_sorting = f'{sort}_{direction}'        
+
     """ 'products' is added to context so that the products will be avaliable to the template """
     context = {
         'products': products,
         'search_term': query,
         'current_categories': categories,
+        'current_sorting': current_sorting,
     }
 
     return render(request, 'products/products.html', context)  # context is used here to send 'products' to the temmplate
